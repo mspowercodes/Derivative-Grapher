@@ -21,17 +21,17 @@ if 'func_type' not in st.session_state:
 # --- MATH HELPER FUNCTIONS ---
 def evaluate_func(func_type, coeffs, x):
     if func_type == 'poly':
-        return coeffs[0]*x**3 + coeffs[1]*x**2 + coeffs[2]*x
+        return coeffs*x**3 + coeffs*x**2 + coeffs*x
     elif func_type == 'rational':
-        return (coeffs[0]*x) / (x**2 + coeffs[1]) + coeffs[2]
+        return (coeffs*x) / (x**2 + coeffs) + coeffs
     return 0
 
 def evaluate_deriv(func_type, coeffs, x):
     if func_type == 'poly':
-        return 3*coeffs[0]*x**2 + 2*coeffs[1]*x + coeffs[2]
+        return 3*coeffs*x**2 + 2*coeffs*x + coeffs
     elif func_type == 'rational':
-        num = coeffs[0] * (coeffs[1] - x**2)
-        den = (x**2 + coeffs[1])**2
+        num = coeffs * (coeffs - x**2)
+        den = (x**2 + coeffs)**2
         return num / den
     return 0
 
@@ -109,40 +109,36 @@ dy_vals = evaluate_deriv(st.session_state.func_type, st.session_state.coeffs, x_
 y_min, y_max = np.min(y_vals) - 1.0, np.max(y_vals) + 1.0
 dy_min, dy_max = np.min(dy_vals) - 1.0, np.max(dy_vals) + 1.0
 
-# --- MAIN PAGE: TWIN PLOT RENDERING ---
-graph_col1, graph_col2 = st.columns(2)
+# --- MAIN PAGE: STACKED PLOT RENDERING ---
+# --- UPPER GRAPH (Function & Tangent) ---
+fig_upper = go.Figure()
+fig_upper.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='f(x)', line=dict(color='#17A2B8', width=3)))
 
-with graph_col1:
-    # --- UPPER GRAPH (Function & Tangent) ---
-    fig_upper = go.Figure()
-    fig_upper.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='f(x)', line=dict(color='#17A2B8', width=3)))
-    
-    # Calculate live moving tangent line segments
-    sel_x = st.session_state.selected_x
-    sel_y = evaluate_func(st.session_state.func_type, st.session_state.coeffs, sel_x)
-    tangent_x = np.linspace(sel_x - 0.6, sel_x + 0.6, 10)
-    tangent_y = input_slope * (tangent_x - sel_x) + sel_y
-    
-    fig_upper.add_trace(go.Scatter(x=tangent_x, y=tangent_y, mode='lines', name='Tangent Line Preview', line=dict(color='#DC3545', width=3, dash='dash')))
-    fig_upper.add_trace(go.Scatter(x=[sel_x], y=[sel_y], mode='markers', name='Selected Point', marker=dict(color='#DC3545', size=11)))
-    
-    fig_upper.update_layout(title="Function View Window: f(x)", xaxis_title="x", yaxis_title="y", showlegend=False, height=400)
-    fig_upper.update_xaxes(range=[-3.0, 3.0])
-    fig_upper.update_yaxes(range=[y_min, y_max])
-    st.plotly_chart(fig_upper, use_container_width=True)
+# Calculate live moving tangent line segments
+sel_x = st.session_state.selected_x
+sel_y = evaluate_func(st.session_state.func_type, st.session_state.coeffs, sel_x)
+tangent_x = np.linspace(sel_x - 0.6, sel_x + 0.6, 10)
+tangent_y = input_slope * (tangent_x - sel_x) + sel_y
 
-with graph_col2:
-    # --- LOWER GRAPH (Derivative Canvas) ---
-    fig_lower = go.Figure()
-    
-    # Conditionally toggle background helper guide line
-    line_color = '#EBF0F5' if show_answer else 'rgba(0,0,0,0)'
-    fig_lower.add_trace(go.Scatter(x=x_vals, y=dy_vals, mode='lines', name="Actual f'(x)", line=dict(color=line_color, width=2.5)))
-    
-    # Draw submitted student data points
-    fig_lower.add_trace(go.Scatter(x=st.session_state.history_x, y=st.session_state.history_y_guess, mode='markers', name='Your Slopes', marker=dict(color='#007BFF', size=12)))
-    
-    fig_lower.update_layout(title="Derivative Plotting Area: f'(x)", xaxis_title="x", yaxis_title="Slope Value (y')", showlegend=False, height=400)
-    fig_lower.update_xaxes(range=[-3.0, 3.0])
-    fig_lower.update_yaxes(range=[dy_min, dy_max])
-    st.plotly_chart(fig_lower, use_container_width=True)
+fig_upper.add_trace(go.Scatter(x=tangent_x, y=tangent_y, mode='lines', name='Tangent Line Preview', line=dict(color='#DC3545', width=3, dash='dash')))
+fig_upper.add_trace(go.Scatter(x=[sel_x], y=[sel_y], mode='markers', name='Selected Point', marker=dict(color='#DC3545', size=11)))
+
+fig_upper.update_layout(title="Function View Window: f(x)", xaxis_title="x", yaxis_title="y", showlegend=False, height=350, margin=dict(t=40, b=40, l=60, r=40))
+fig_upper.update_xaxes(range=[-3.0, 3.0])
+fig_upper.update_yaxes(range=[y_min, y_max])
+st.plotly_chart(fig_upper, use_container_width=True)
+
+# --- LOWER GRAPH (Derivative Canvas Stacked Underneath) ---
+fig_lower = go.Figure()
+
+# Conditionally toggle background helper guide line
+line_color = '#EBF0F5' if show_answer else 'rgba(0,0,0,0)'
+fig_lower.add_trace(go.Scatter(x=x_vals, y=dy_vals, mode='lines', name="Actual f'(x)", line=dict(color=line_color, width=2.5)))
+
+# Draw submitted student data points
+fig_lower.add_trace(go.Scatter(x=st.session_state.history_x, y=st.session_state.history_y_guess, mode='markers', name='Your Slopes', marker=dict(color='#007BFF', size=12)))
+
+fig_lower.update_layout(title="Derivative Plotting Area f'(x) [Aligned with x-axis above]", xaxis_title="x", yaxis_title="Slope Value (y')", showlegend=False, height=350, margin=dict(t=40, b=40, l=60, r=40))
+fig_lower.update_xaxes(range=[-3.0, 3.0])
+fig_lower.update_yaxes(range=[dy_min, dy_max])
+st.plotly_chart(fig_lower, use_container_width=True)
