@@ -21,17 +21,21 @@ if 'func_type' not in st.session_state:
 # --- MATH HELPER FUNCTIONS ---
 def evaluate_func(func_type, coeffs, x):
     if func_type == 'poly':
-        return coeffs*x**3 + coeffs*x**2 + coeffs*x
+        a, b, c = coeffs[0], coeffs[1], coeffs[2]
+        return a*x**3 + b*x**2 + c*x
     elif func_type == 'rational':
-        return (coeffs*x) / (x**2 + coeffs) + coeffs
+        a, b, c = coeffs[0], coeffs[1], coeffs[2]
+        return (a*x) / (x**2 + b) + c
     return 0
 
 def evaluate_deriv(func_type, coeffs, x):
     if func_type == 'poly':
-        return 3*coeffs*x**2 + 2*coeffs*x + coeffs
+        a, b, c = coeffs[0], coeffs[1], coeffs[2]
+        return 3*a*x**2 + 2*b*x + c
     elif func_type == 'rational':
-        num = coeffs * (coeffs - x**2)
-        den = (x**2 + coeffs)**2
+        a, b, c = coeffs[0], coeffs[1], coeffs[2]
+        num = a * (b - x**2)
+        den = (x**2 + b)**2
         return num / den
     return 0
 
